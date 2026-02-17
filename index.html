@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlagIQ — Flag &amp; Capital Quiz Trainer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card2: #334155;
+      --accent: #6366f1;
+      --accent-h: #818cf8;
+      --success: #22c55e;
+      --error: #ef4444;
+      --warn: #fb923c;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 600px;
+      padding: 0 1rem 5rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 0 1rem;
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Screen system ── */
+    .screen { display: none; flex-direction: column; gap: 1rem; animation: fadeUp .2s ease; }
+    .screen.active { display: flex; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+      padding: .7rem 1.4rem; border-radius: 10px; border: none;
+      font-size: .95rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-h); transform: translateY(-1px); }
+    .btn-secondary { background: var(--bg-card2); color: var(--text); }
+    .btn-secondary:hover { background: #475569; }
+    .btn-icon {
+      padding: .5rem .65rem; background: var(--bg-card2); color: var(--text);
+      border-radius: 8px; border: none; cursor: pointer; font-size: 1rem;
+    }
+    .btn-icon:hover { background: #475569; }
+    .btn-full { width: 100%; }
+
+    /* ── Stat boxes ── */
+    .stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; }
+    .stat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center; }
+    .stat-val { font-size: 1.9rem; font-weight: 900; color: var(--accent); }
+    .stat-lbl { font-size: .7rem; color: var(--muted); margin-top: .15rem; text-transform: uppercase; letter-spacing: .05em; }
+
+    /* ── Mode grid ── */
+    .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+    .mode-card {
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem 1rem; cursor: pointer; text-align: center; transition: all .2s;
+      user-select: none;
+    }
+    .mode-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99,102,241,.2); }
+    .mode-card .mc-icon { font-size: 2.2rem; margin-bottom: .4rem; }
+    .mode-card .mc-title { font-size: .95rem; font-weight: 800; margin-bottom: .2rem; }
+    .mode-card .mc-desc { font-size: .75rem; color: var(--muted); line-height: 1.3; }
+
+    /* ── Settings ── */
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-lbl { font-size: .875rem; font-weight: 600; }
+    .setting-desc { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    select {
+      background: var(--bg-card2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 7px; padding: .35rem .7rem; font-size: .85rem; cursor: pointer;
+    }
+
+    /* ── Progress bar ── */
+    .progress-bar { height: 5px; background: var(--bg-card2); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a855f7); transition: width .35s ease; }
+
+    /* ── Quiz header ── */
+    .quiz-header { display: flex; align-items: center; justify-content: space-between; }
+    .q-count { font-size: .85rem; color: var(--muted); font-weight: 600; }
+    .streak-badge {
+      display: inline-flex; align-items: center; gap: .2rem;
+      background: rgba(251,146,60,.12); border: 1px solid rgba(251,146,60,.3);
+      border-radius: 20px; padding: .22rem .7rem;
+      font-size: .85rem; font-weight: 800; color: var(--warn);
+    }
+
+    /* ── Flag display ── */
+    .flag-stage {
+      display: flex; justify-content: center; align-items: center;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 2rem 1rem; min-height: 190px;
+    }
+    .flag-img {
+      max-width: 220px; max-height: 150px; border-radius: 5px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4); object-fit: contain;
+    }
+
+    /* ── Country display (capitals mode) ── */
+    .country-stage {
+      display: flex; flex-direction: column; align-items: center; gap: .9rem;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 1rem;
+    }
+    .flag-sm { width: 72px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+    .country-name-big { font-size: 1.5rem; font-weight: 900; text-align: center; }
+
+    /* ── Question text ── */
+    .question-text { text-align: center; font-size: 1rem; font-weight: 600; color: var(--muted); }
+
+    /* ── Answer options ── */
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+    .opt-btn {
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: 10px;
+      padding: .85rem .7rem; color: var(--text); font-size: .88rem; font-weight: 700;
+      cursor: pointer; transition: all .12s; text-align: center; line-height: 1.3;
+      position: relative;
+    }
+    .opt-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(99,102,241,.1); }
+    .opt-btn:disabled { cursor: default; }
+    .opt-btn.correct { border-color: var(--success); background: rgba(34,197,94,.15); color: var(--success); }
+    .opt-btn.wrong   { border-color: var(--error);   background: rgba(239,68,68,.15);  color: var(--error); }
+    .opt-btn .key-hint {
+      position: absolute; top: .3rem; left: .4rem;
+      font-size: .65rem; font-weight: 900; color: var(--muted); opacity: .6;
+    }
+
+    /* ── Next button ── */
+    #next-btn { display: none; }
+
+    /* ── Round end ── */
+    .score-card { text-align: center; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+    .score-emoji { font-size: 3rem; display: block; margin-bottom: .5rem; }
+    .score-big { font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .score-lbl { color: var(--muted); font-size: .95rem; margin-top: .25rem; }
+    .btn-row { display: flex; gap: .75rem; }
+    .btn-row .btn { flex: 1; }
+    .wrong-list { display: flex; flex-direction: column; gap: .5rem; }
+    .wrong-item { display: flex; align-items: center; gap: .75rem; padding: .65rem .75rem; background: var(--bg-card2); border-radius: 9px; }
+    .wrong-item img { width: 42px; border-radius: 3px; flex-shrink: 0; }
+    .wrong-item .wi-name { font-weight: 700; font-size: .875rem; }
+    .wrong-item .wi-capital { font-size: .75rem; color: var(--muted); }
+    .wrong-item .wi-your { font-size: .75rem; color: var(--error); }
+
+    /* ── Stats screen ── */
+    .ring-wrap { position: relative; width: 110px; height: 110px; margin: 0 auto 1rem; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+    .ring-pct { font-size: 1.6rem; font-weight: 900; }
+    .ring-lbl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+
+    .tab-bar { display: flex; gap: .35rem; border-bottom: 1px solid var(--border); margin-bottom: .85rem; }
+    .tab-btn {
+      padding: .45rem .9rem; background: none; border: none;
+      border-bottom: 2px solid transparent; color: var(--muted);
+      font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .12s; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .country-list { display: flex; flex-direction: column; gap: .45rem; max-height: 420px; overflow-y: auto; }
+    .country-list::-webkit-scrollbar { width: 4px; }
+    .country-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .c-item { display: flex; align-items: center; gap: .7rem; padding: .55rem .65rem; background: var(--bg-card2); border-radius: 8px; }
+    .c-item img { width: 38px; border-radius: 3px; flex-shrink: 0; }
+    .c-info { flex: 1; min-width: 0; }
+    .c-name { font-size: .85rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .c-capital { font-size: .72rem; color: var(--muted); }
+    .mini-bar { display: flex; gap: 2px; margin-top: .25rem; }
+    .mini-c { height: 4px; border-radius: 2px; background: var(--success); min-width: 2px; }
+    .mini-w { height: 4px; border-radius: 2px; background: var(--error); min-width: 2px; }
+    .c-pct { font-size: .8rem; font-weight: 800; min-width: 38px; text-align: right; flex-shrink: 0; }
+
+    .danger-btn {
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: var(--error);
+      border-radius: 8px; padding: .6rem 1.1rem; font-size: .85rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .danger-btn:hover { background: rgba(239,68,68,.2); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px;
+      padding: .65rem 1.2rem; font-weight: 700; font-size: .9rem;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1); z-index: 999; white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.t-ok  { border-color: var(--success); color: var(--success); }
+    #toast.t-err { border-color: var(--error);   color: var(--error); }
+
+    /* ── Loading ── */
+    #screen-loading { align-items: center; justify-content: center; min-height: 60vh; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Utility ── */
+    h2 { font-size: 1.15rem; font-weight: 800; }
+    h3 { font-size: .95rem; font-weight: 800; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; }
+    .gap { gap: .75rem; }
+    .mb { margin-bottom: .6rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 400px) {
+      .mode-grid { grid-template-columns: 1fr; }
+      .options-grid { grid-template-columns: 1fr; }
+      .opt-btn .key-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">🌍 FlagIQ</div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn-icon" id="stats-btn" title="Your progress">📊</button>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div class="screen active" id="screen-loading">
+    <div class="spinner"></div>
+    <p class="muted">Loading country data…</p>
+  </div>
+
+  <!-- ══════════════════════════════
+       HOME
+  ══════════════════════════════ -->
+  <div class="screen" id="screen-home">
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="h-answered">0</div><div class="stat-lbl">Answered</div></div>
+      <div class="stat-box"><div class="stat-val" id="h-accuracy">—</div><div class="stat-lbl">Accuracy</div></div>
+      <div class="stat-box"><div class="stat-val" id="h-streak">0</div><div class="stat-lbl">Best Streak</div></div>
+    </div>
+
+    <div class="card">
+      <h2 class="mb">Choose a Quiz Mode</h2>
+      <p class="muted mb">Test your knowledge of world flags &amp; capitals</p>
+      <div class="mode-grid">
+        <div class="mode-card" data-mode="flags">
+          <div class="mc-icon">🏳️</div>
+          <div class="mc-title">Flag Quiz</div>
+          <div class="mc-desc">See a flag — name the country</div>
+        </div>
+        <div class="mode-card" data-mode="capitals">
+          <div class="mc-icon">🏛️</div>
+          <div class="mc-title">Capitals Quiz</div>
+          <div class="mc-desc">See a country — name its capital</div>
+        </div>
+        <div class="mode-card" data-mode="mixed">
+          <div class="mc-icon">🔀</div>
+          <div class="mc-title">Mixed</div>
+          <div class="mc-desc">Random flags &amp; capitals questions</div>
+        </div>
+        <div class="mode-card" data-mode="weak">
+          <div class="mc-icon">💪</div>
+          <div class="mc-title">Practice Weak</div>
+          <div class="mc-desc">Focus on your most-missed countries</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="mb">Settings</h3>
+      <div class="setting-row">
+        <div>
+          <div class="setting-lbl">Questions per round</div>
+          <div class="setting-desc">How many questions each session</div>
+        </div>
+        <select id="cfg-count">
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-lbl">Region</div>
+          <div class="setting-desc">Limit to a specific continent</div>
+        </div>
+        <select id="cfg-region">
+          <option value="all">All regions</option>
+          <option value="europe">Europe</option>
+          <option value="americas">Americas</option>
+          <option value="asia">Asia</option>
+          <option value="africa">Africa</option>
+          <option value="oceania">Oceania</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       QUIZ
+  ══════════════════════════════ -->
+  <div class="screen" id="screen-quiz">
+    <div class="quiz-header">
+      <button class="btn-icon" id="quit-btn" title="End quiz">✕</button>
+      <span class="q-count"><span id="q-cur">1</span> / <span id="q-tot">10</span></span>
+      <div class="streak-badge">🔥 <span id="q-streak">0</span></div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="q-prog" style="width:0%"></div>
+    </div>
+
+    <!-- Flag question -->
+    <div id="flag-q">
+      <div class="flag-stage">
+        <img class="flag-img" id="flag-img" src="" alt="Country flag"
+          onerror="this.src=BROKEN_FLAG_SVG">
+      </div>
+      <p class="question-text">Which country does this flag belong to?</p>
+    </div>
+
+    <!-- Capital question -->
+    <div id="capital-q" style="display:none">
+      <div class="country-stage">
+        <img class="flag-sm" id="cap-flag-img" src="" alt=""
+          onerror="this.src=BROKEN_FLAG_SVG">
+        <div class="country-name-big" id="cap-country-name"></div>
+      </div>
+      <p class="question-text">What is the capital city?</p>
+    </div>
+
+    <div class="options-grid" id="opts"></div>
+
+    <button class="btn btn-primary btn-full" id="next-btn">Next →</button>
+  </div>
+
+  <!-- ══════════════════════════════
+       ROUND END
+  ══════════════════════════════ -->
+  <div class="screen" id="screen-end">
+    <div class="score-card">
+      <span class="score-emoji" id="end-emoji">🎉</span>
+      <div class="score-big" id="end-score">8/10</div>
+      <div class="score-lbl" id="end-lbl">Great job!</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="end-correct">0</div><div class="stat-lbl">Correct</div></div>
+      <div class="stat-box"><div class="stat-val" id="end-wrong">0</div><div class="stat-lbl">Wrong</div></div>
+      <div class="stat-box"><div class="stat-val" id="end-streak">0</div><div class="stat-lbl">Best Streak</div></div>
+    </div>
+
+    <div class="card" id="missed-card" style="display:none">
+      <h3 class="mb">Missed Questions</h3>
+      <div class="wrong-list" id="missed-list"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="end-home-btn">Home</button>
+      <button class="btn btn-primary" id="end-again-btn">Play Again 🔄</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       STATS
+  ══════════════════════════════ -->
+  <div class="screen" id="screen-stats">
+    <div class="row">
+      <h2>Your Progress</h2>
+      <button class="btn-icon" id="stats-close-btn">✕</button>
+    </div>
+
+    <div class="card" style="text-align:center">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 110 110" width="110" height="110">
+          <circle cx="55" cy="55" r="44" fill="none" stroke="#334155" stroke-width="9"/>
+          <circle cx="55" cy="55" r="44" fill="none" stroke="#6366f1" stroke-width="9"
+            stroke-linecap="round"
+            stroke-dasharray="276.46"
+            stroke-dashoffset="276.46"
+            id="acc-ring"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-pct" id="s-acc">—</div>
+          <div class="ring-lbl">Accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-correct">0</div><div class="stat-lbl">Correct</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-streak">0</div><div class="stat-lbl">Best Streak</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="mb">Countries</h3>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="all">All</button>
+        <button class="tab-btn" data-tab="struggling">Struggling</button>
+        <button class="tab-btn" data-tab="mastered">Mastered</button>
+        <button class="tab-btn" data-tab="unseen">Unseen</button>
+      </div>
+      <div class="country-list" id="country-list"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="mb">Danger Zone</h3>
+      <button class="danger-btn" id="reset-btn">Reset All Progress</button>
+    </div>
+  </div>
+
+</div><!-- .app -->
+
+<div id="toast"></div>
+
+<script>
+// ── Broken flag fallback SVG (data URI) ────────────────────────────────────
+const BROKEN_FLAG_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48'%3E%3Crect width='64' height='48' rx='3' fill='%23334155'/%3E%3Ctext x='32' y='29' text-anchor='middle' fill='%2394a3b8' font-size='20'%3E%3F%3C/text%3E%3C/svg%3E";
+
+// ── Country data ───────────────────────────────────────────────────────────
+let COUNTRIES = [];
+
+// ── LocalStorage ───────────────────────────────────────────────────────────
+const Store = (() => {
+  const KEY = 'flagiq_v2';
+
+  function defaults() {
+    return { totalAnswered: 0, totalCorrect: 0, longestStreak: 0, countryStats: {} };
+  }
+
+  function get() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch { return defaults(); }
+  }
+
+  function save(d) {
+    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {}
+  }
+
+  function recordAnswer(code, correct) {
+    const d = get();
+    d.totalAnswered++;
+    if (correct) d.totalCorrect++;
+    if (!d.countryStats[code]) d.countryStats[code] = { c: 0, w: 0 };
+    if (correct) d.countryStats[code].c++;
+    else d.countryStats[code].w++;
+    save(d);
+  }
+
+  function updateStreak(s) {
+    const d = get();
+    if (s > d.longestStreak) { d.longestStreak = s; save(d); }
+  }
+
+  function reset() { save(defaults()); }
+
+  return { get, save, recordAnswer, updateStreak, reset };
+})();
+
+// ── Quiz engine ────────────────────────────────────────────────────────────
+const Quiz = (() => {
+  let state = {};
+
+  function shuffle(arr) { return [...arr].sort(() => Math.random() - .5); }
+
+  function makeOptions(correct, pool, isCapital) {
+    const distractors = shuffle(pool.filter(c => c.code !== correct.code)).slice(0, 3);
+    return shuffle([correct, ...distractors]).map(c => ({
+      code: c.code,
+      label: isCapital ? c.capital : c.name,
+      isCorrect: c.code === correct.code,
+    }));
+  }
+
+  function start(mode, count, region) {
+    let pool = region === 'all' ? COUNTRIES : COUNTRIES.filter(c => c.region === region);
+    if (pool.length < 4) pool = COUNTRIES;
+
+    if (mode === 'weak') {
+      const stats = Store.get().countryStats;
+      pool = [...pool].sort((a, b) => {
+        const sa = stats[a.code] || { c: 0, w: 0 };
+        const sb = stats[b.code] || { c: 0, w: 0 };
+        const ra = sa.w / (sa.c + sa.w + 1) + ((sa.c + sa.w) === 0 ? 0.5 : 0);
+        const rb = sb.w / (sb.c + sb.w + 1) + ((sb.c + sb.w) === 0 ? 0.5 : 0);
+        return rb - ra;
+      });
+    }
+
+    const selected = shuffle(pool).slice(0, Math.min(count, pool.length));
+
+    state = {
+      mode, count, region,
+      questions: selected.map(country => {
+        const type = mode === 'flags' ? 'flag'
+          : mode === 'capitals' ? 'capital'
+          : Math.random() < .5 ? 'flag' : 'capital';
+        return { country, type, options: makeOptions(country, pool, type === 'capital') };
+      }),
+      idx: 0,
+      streak: 0,
+      bestStreak: 0,
+      missed: [],
+      answered: false,
+    };
+  }
+
+  function current() { return state.questions[state.idx]; }
+  function progress() { return state.idx / state.questions.length; }
+  function total() { return state.questions.length; }
+  function idx() { return state.idx; }
+  function streak() { return state.streak; }
+
+  function answer(code) {
+    if (state.answered) return null;
+    state.answered = true;
+    const q = current();
+    const correct = q.options.find(o => o.isCorrect).code === code;
+
+    if (correct) {
+      state.streak++;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+      Store.updateStreak(state.streak);
+    } else {
+      // Track what the user guessed for the review screen
+      const guessed = q.options.find(o => o.code === code);
+      state.missed.push({ q, guessLabel: guessed ? guessed.label : '?' });
+      state.streak = 0;
+    }
+    Store.recordAnswer(q.country.code, correct);
+    return correct;
+  }
+
+  function next() {
+    state.idx++;
+    state.answered = false;
+    return state.idx < state.questions.length;
+  }
+
+  function results() {
+    const total = state.questions.length;
+    const wrong = state.missed.length;
+    return { correct: total - wrong, wrong, total, streak: state.bestStreak, missed: state.missed };
+  }
+
+  function replay() { start(state.mode, state.count, state.region); }
+
+  return { start, current, progress, total, idx, streak, answer, next, results, replay };
+})();
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function flagUrl(code, size = 64) {
+  return `https://flagsapi.com/${code}/flat/${size}.png`;
+}
+
+function $id(id) { return document.getElementById(id); }
+
+let _toastTimer;
+function showToast(msg, type) {
+  const el = $id('toast');
+  clearTimeout(_toastTimer);
+  el.textContent = msg;
+  el.className = `show t-${type}`;
+  _toastTimer = setTimeout(() => el.className = '', 1800);
+}
+
+// ── Screen routing ─────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $id(id).classList.add('active');
+}
+
+// ── Home screen ────────────────────────────────────────────────────────────
+function renderHome() {
+  const d = Store.get();
+  $id('h-answered').textContent = d.totalAnswered;
+  $id('h-accuracy').textContent = d.totalAnswered
+    ? Math.round(d.totalCorrect / d.totalAnswered * 100) + '%' : '—';
+  $id('h-streak').textContent = d.longestStreak;
+  showScreen('screen-home');
+}
+
+// ── Quiz screen ────────────────────────────────────────────────────────────
+function renderQuestion() {
+  const q = Quiz.current();
+  const idx = Quiz.idx();
+  const tot = Quiz.total();
+
+  $id('q-cur').textContent = idx + 1;
+  $id('q-tot').textContent = tot;
+  $id('q-prog').style.width = (idx / tot * 100) + '%';
+  $id('q-streak').textContent = Quiz.streak();
+
+  const isFlagQ = q.type === 'flag';
+  $id('flag-q').style.display = isFlagQ ? '' : 'none';
+  $id('capital-q').style.display = isFlagQ ? 'none' : '';
+
+  if (isFlagQ) {
+    const img = $id('flag-img');
+    img.src = flagUrl(q.country.code, 64);
+    img.alt = q.country.name;
+  } else {
+    const img = $id('cap-flag-img');
+    img.src = flagUrl(q.country.code, 48);
+    img.alt = q.country.name;
+    $id('cap-country-name').textContent = q.country.name;
+  }
+
+  const keys = ['1', '2', '3', '4'];
+  const opts = $id('opts');
+  opts.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.dataset.code = opt.code;
+    btn.innerHTML = `<span class="key-hint">${keys[i]}</span>${opt.label}`;
+    btn.addEventListener('click', () => handleAnswer(opt.code));
+    opts.appendChild(btn);
+  });
+
+  const nb = $id('next-btn');
+  nb.style.display = 'none';
+
+  showScreen('screen-quiz');
+}
+
+function handleAnswer(code) {
+  const correct = Quiz.answer(code);
+  if (correct === null) return; // already answered
+
+  const q = Quiz.current();
+  const correctCode = q.options.find(o => o.isCorrect).code;
+
+  document.querySelectorAll('.opt-btn').forEach(btn => {
+    btn.disabled = true;
+    if (btn.dataset.code === correctCode) btn.classList.add('correct');
+    else if (btn.dataset.code === code && !correct) btn.classList.add('wrong');
+  });
+
+  $id('q-streak').textContent = Quiz.streak();
+
+  if (correct) {
+    showToast('✓ Correct!', 'ok');
+  } else {
+    const correctOpt = q.options.find(o => o.isCorrect);
+    showToast('✗ ' + correctOpt.label, 'err');
+  }
+
+  const nb = $id('next-btn');
+  nb.style.display = '';
+  nb.textContent = Quiz.idx() < Quiz.total() - 1 ? 'Next →' : 'See Results →';
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (!$id('screen-quiz').classList.contains('active')) return;
+  const keys = { '1': 0, '2': 1, '3': 2, '4': 3 };
+  if (e.key in keys) {
+    const btns = document.querySelectorAll('.opt-btn');
+    if (btns[keys[e.key]] && !btns[keys[e.key]].disabled) btns[keys[e.key]].click();
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && $id('next-btn').style.display !== 'none') {
+    e.preventDefault();
+    $id('next-btn').click();
+  }
+});
+
+// ── Round end screen ───────────────────────────────────────────────────────
+function renderEnd() {
+  const { correct, wrong, total, streak, missed } = Quiz.results();
+  $id('end-correct').textContent = correct;
+  $id('end-wrong').textContent = wrong;
+  $id('end-streak').textContent = streak;
+  $id('end-score').textContent = `${correct}/${total}`;
+
+  const pct = Math.round(correct / total * 100);
+  let emoji, lbl;
+  if (pct === 100)    { emoji = '🏆'; lbl = 'Perfect score!'; }
+  else if (pct >= 80) { emoji = '🎉'; lbl = 'Great job!'; }
+  else if (pct >= 60) { emoji = '👍'; lbl = 'Good effort!'; }
+  else if (pct >= 40) { emoji = '📚'; lbl = 'Keep studying!'; }
+  else                { emoji = '💪'; lbl = 'Practice makes perfect!'; }
+
+  $id('end-emoji').textContent = emoji;
+  $id('end-lbl').textContent = lbl;
+
+  const mc = $id('missed-card');
+  if (missed.length > 0) {
+    mc.style.display = '';
+    const list = $id('missed-list');
+    list.innerHTML = '';
+    missed.forEach(({ q, guessLabel }) => {
+      const div = document.createElement('div');
+      div.className = 'wrong-item';
+      const correctLabel = q.type === 'flag' ? q.country.name : q.country.capital;
+      div.innerHTML = `
+        <img src="${flagUrl(q.country.code, 48)}" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="wi-name">${q.country.name}</div>
+          <div class="wi-capital">Capital: ${q.country.capital}</div>
+          <div class="wi-your">You answered: ${guessLabel} — Correct: ${correctLabel}</div>
+        </div>`;
+      list.appendChild(div);
+    });
+  } else {
+    mc.style.display = 'none';
+  }
+
+  showScreen('screen-end');
+}
+
+// ── Stats screen ───────────────────────────────────────────────────────────
+function renderStats() {
+  const d = Store.get();
+  const acc = d.totalAnswered ? d.totalCorrect / d.totalAnswered : 0;
+  const pct = Math.round(acc * 100);
+
+  $id('s-acc').textContent = pct + '%';
+  $id('s-total').textContent = d.totalAnswered;
+  $id('s-correct').textContent = d.totalCorrect;
+  $id('s-streak').textContent = d.longestStreak;
+
+  // Animate ring: circumference = 2π×44 ≈ 276.46
+  const circ = 276.46;
+  $id('acc-ring').style.strokeDashoffset = circ * (1 - acc);
+
+  renderCountryList('all');
+  showScreen('screen-stats');
+}
+
+function renderCountryList(tab) {
+  const d = Store.get();
+  let list = [...COUNTRIES];
+
+  if (tab === 'struggling') {
+    list = list.filter(c => {
+      const s = d.countryStats[c.code];
+      return s && s.w > 0 && s.w >= s.c;
+    }).sort((a, b) => {
+      const sa = d.countryStats[a.code], sb = d.countryStats[b.code];
+      return (sb.w / (sb.c + sb.w)) - (sa.w / (sa.c + sa.w));
+    });
+  } else if (tab === 'mastered') {
+    list = list.filter(c => {
+      const s = d.countryStats[c.code];
+      return s && s.c >= 3 && s.c > s.w;
+    });
+  } else if (tab === 'unseen') {
+    list = list.filter(c => !d.countryStats[c.code]);
+  }
+
+  const el = $id('country-list');
+  if (list.length === 0) {
+    el.innerHTML = '<p class="muted" style="padding:.75rem;text-align:center">No countries here yet</p>';
+    return;
+  }
+
+  el.innerHTML = '';
+  list.forEach(c => {
+    const s = d.countryStats[c.code] || { c: 0, w: 0 };
+    const tot = s.c + s.w;
+    const pct = tot ? Math.round(s.c / tot * 100) : null;
+    const barW = 80;
+    const cW = tot ? Math.round(s.c / tot * barW) : 0;
+    const wW = tot ? barW - cW : 0;
+    const pctColor = pct === null ? 'var(--muted)' : pct >= 70 ? 'var(--success)' : pct >= 40 ? 'var(--warn)' : 'var(--error)';
+
+    const item = document.createElement('div');
+    item.className = 'c-item';
+    item.innerHTML = `
+      <img src="${flagUrl(c.code, 48)}" alt="${c.name}" onerror="this.src=BROKEN_FLAG_SVG">
+      <div class="c-info">
+        <div class="c-name">${c.name}</div>
+        <div class="c-capital">${c.capital}</div>
+        ${tot > 0
+          ? `<div class="mini-bar"><div class="mini-c" style="width:${cW}px"></div><div class="mini-w" style="width:${wW}px"></div></div>`
+          : '<div class="c-capital" style="margin-top:.15rem">Not yet studied</div>'}
+      </div>
+      <div class="c-pct" style="color:${pctColor}">${pct !== null ? pct + '%' : '—'}</div>`;
+    el.appendChild(item);
+  });
+}
+
+// ── Event wiring ───────────────────────────────────────────────────────────
+function initEvents() {
+  // Mode cards
+  document.querySelectorAll('.mode-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const mode = card.dataset.mode;
+      const count = parseInt($id('cfg-count').value);
+      const region = $id('cfg-region').value;
+      Quiz.start(mode, count, region);
+      renderQuestion();
+    });
+  });
+
+  // Quit
+  $id('quit-btn').addEventListener('click', renderEnd);
+
+  // Next
+  $id('next-btn').addEventListener('click', () => {
+    if (Quiz.next()) renderQuestion();
+    else renderEnd();
+  });
+
+  // End screen
+  $id('end-home-btn').addEventListener('click', renderHome);
+  $id('end-again-btn').addEventListener('click', () => {
+    Quiz.replay();
+    renderQuestion();
+  });
+
+  // Stats
+  $id('stats-btn').addEventListener('click', renderStats);
+  $id('stats-close-btn').addEventListener('click', renderHome);
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderCountryList(btn.dataset.tab);
+    });
+  });
+
+  // Reset
+  $id('reset-btn').addEventListener('click', () => {
+    if (confirm('Reset all progress? This cannot be undone.')) {
+      Store.reset();
+      renderStats();
+    }
+  });
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch('countries.json');
+    if (!res.ok) throw new Error('fetch failed');
+    COUNTRIES = await res.json();
+  } catch (e) {
+    // Inline minimal fallback so the app still works if fetch fails
+    COUNTRIES = [
+      { code:'US', name:'United States',   capital:'Washington, D.C.', region:'americas' },
+      { code:'GB', name:'United Kingdom',  capital:'London',           region:'europe'   },
+      { code:'FR', name:'France',          capital:'Paris',            region:'europe'   },
+      { code:'DE', name:'Germany',         capital:'Berlin',           region:'europe'   },
+      { code:'JP', name:'Japan',           capital:'Tokyo',            region:'asia'     },
+      { code:'CN', name:'China',           capital:'Beijing',          region:'asia'     },
+      { code:'IN', name:'India',           capital:'New Delhi',        region:'asia'     },
+      { code:'BR', name:'Brazil',          capital:'Brasília',         region:'americas' },
+      { code:'AU', name:'Australia',       capital:'Canberra',         region:'oceania'  },
+      { code:'ZA', name:'South Africa',    capital:'Pretoria',         region:'africa'   },
+      { code:'NG', name:'Nigeria',         capital:'Abuja',            region:'africa'   },
+      { code:'MX', name:'Mexico',          capital:'Mexico City',      region:'americas' },
+    ];
+  }
+  initEvents();
+  renderHome();
+}
+
+init();
+</script>
+</body>
+</html>
